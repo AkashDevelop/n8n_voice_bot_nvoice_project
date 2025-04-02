@@ -52,7 +52,7 @@
 #### 📌 **1. Prepare Google Sheets**
 1. **Create a Google Sheet** with columns:
 
-2. 2. **Obtain your Google Sheets API Credentials**:
+2. **Obtain your Google Sheets API Credentials**:
 - Share the sheet with `service-account-email@n8n.io`
 - Enable Google Sheets API from [Google Cloud Console](https://console.cloud.google.com/)
 
