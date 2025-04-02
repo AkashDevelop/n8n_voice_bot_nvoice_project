@@ -1,0 +1,232 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "/voice-command",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "7cac4810-fded-4b47-8269-e51a263999c5",
+      "name": "Webhook",
+      "webhookId": "99a2ec8e-2852-4f0b-af96-4fca1997a52b"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the incoming voice command text from the webhook payload.\nconst inputText = items[0].json.text;\n\n// Convert the text to lower case.\nconst command = inputText.toLowerCase();\n\n// Create an object to store our command details.\nlet action = {};\n\n// Check if the command asks for an invoice.\nif (command.includes(\"invoice\")) {\n    action.type = \"invoice\";\n}\n\n// Attach the action details to the output.\nitems[0].json.action = action;\nreturn items;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "3e691b34-b011-4cac-acee-50366f01cbb8",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        440,
+        0
+      ],
+      "id": "59db54fc-0127-4141-aa21-c3ea143eaa22",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        400,
+        280
+      ],
+      "id": "4415692c-3998-44b0-818a-cc8a7d49322d",
+      "name": "DeepSeek Chat Model",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "KMSXPLYehxHSiqWe",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        580,
+        280
+      ],
+      "id": "7d06f5af-b4e6-46ac-9f7e-934c769372c0",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "11fGxtFLx7N8_hFTvK5D_DB_3KQNbWqRr9lDkm0QIgLg",
+          "mode": "list",
+          "cachedResultName": "Logistics Invoice Data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/11fGxtFLx7N8_hFTvK5D_DB_3KQNbWqRr9lDkm0QIgLg/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/11fGxtFLx7N8_hFTvK5D_DB_3KQNbWqRr9lDkm0QIgLg/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.5,
+      "position": [
+        740,
+        260
+      ],
+      "id": "c334e987-dd52-4908-9f64-d1fa384b9916",
+      "name": "Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8wjpoStESrclprNB",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Retrieve action details from the AI Agent\nconst action = items[0].json.action;\n\n// Assume the Google Sheets node outputs rows in items[0].json.rows or directly in items array\n// Here we consider items as an array of rows\nconst rows = items.map(item => item.json);\n\n// Filter rows based on shipment date if the action is invoice generation\nlet filteredData = rows;\nif (action.type === \"invoice\" && action.date) {\n    filteredData = rows.filter(row => row.ShipmentDate === action.date);\n}\n\n// Return the filtered data for invoice generation\nreturn filteredData.map(row => ({ json: row }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        0
+      ],
+      "id": "7691b903-98b6-4dda-a86e-9810efc5f29c",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "html": "<html>\n  <head>\n    <title>Invoice for Shipment {{ $json.InvoiceID }}</title>\n  </head>\n  <body>\n    <h1>Invoice: {{ $json.InvoiceID }}</h1>\n    <p><strong>Customer Name:</strong> {{ $json.CustomerName }}</p>\n    <p><strong>From:</strong> {{ $json.From }}</p>\n    <p><strong>To:</strong> {{ $json.To }}</p>\n    <p><strong>Weight:</strong> {{ $json.Weight }} kg</p>\n    <p><strong>Temperature:</strong> {{ $json.Temperature }}°C</p>\n    <p><strong>Assigned Worker:</strong> {{ $json.AssignedWorker }}</p>\n    <p><strong>Days Taken:</strong> {{ $json.DaysTaken }}</p>\n    <p><strong>Shipment Date:</strong> {{ $json.ShipmentDate }}</p>\n  </body>\n</html>\n\n\n<style>\n.container {\n  background-color: #ffffff;\n  text-align: center;\n  padding: 16px;\n  border-radius: 8px;\n}\n\nh1 {\n  color: #ff6d5a;\n  font-size: 24px;\n  font-weight: bold;\n  padding: 8px;\n}\n\nh2 {\n  color: #909399;\n  font-size: 18px;\n  font-weight: bold;\n  padding: 8px;\n}\n</style>\n\n<script>\nconsole.log(\"Hello World!\");\n</script>"
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        1020,
+        0
+      ],
+      "id": "81085335-63d3-4f78-96ed-7b511a6afcb6",
+      "name": "HTML"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "callerPolicy": "any",
+    "executionTimeout": -1
+  },
+  "versionId": "4f518e17-046d-4af7-9e79-47cec666db47",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ab1527721dfd61ed8697bc094b16faad165434c18df8e7c6b1cf242da0758a74"
+  },
+  "id": "rWERXfoaF921Arjn",
+  "tags": []
+}
